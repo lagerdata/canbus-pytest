@@ -5,9 +5,9 @@ Contains handling of ASC logging files.
 
 """
 import sys
-from datetime import datetime
 import time
 import logging
+import zipfile
 
 from can.message import Message
 from can.io.generic import BaseIOHandler
@@ -44,6 +44,8 @@ class ASCReader(BaseIOHandler):
 
     def __iter__(self):
         for line in self.file:
+            if isinstance(line, bytes):
+                line = line.decode()
             #logger.debug("ASCReader: parsing line: '%s'", line.splitlines()[0])
             temp = line.strip()
             if not temp or not temp[0].isdigit():
@@ -137,11 +139,18 @@ class ASCReader(BaseIOHandler):
 
         self.stop()
 
-
-def main(file):
+def print_messages(file):
     reader = ASCReader(file)
     for (direction, msg) in reader:
         print(direction, msg)
+
+def main(filename):
+    if filename.endswith('.zip'):
+        with zipfile.ZipFile(filename) as z:
+            with z.open(z.namelist()[0], 'r') as unzipped:
+                print_messages(unzipped)
+    else:
+        print_messages(filename)
 
 if __name__ == '__main__':
     main(sys.argv[1])
