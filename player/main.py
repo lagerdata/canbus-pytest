@@ -149,10 +149,31 @@ class ASCReader(BaseIOHandler):
 
         self.stop()
 
+def group_by_time(messages, interval):
+    iterator = iter(messages)
+    this_group_tx = []
+    this_group_rx = []
+    base_time = None
+    for (direction, message) in iterator:
+        if base_time is None:
+            base_time = message.timestamp
+        if message.timestamp - base_time >= interval:
+            yield base_time, this_group_tx, this_group_rx
+            this_group_tx = []
+            this_group_rx = []
+            base_time = message.timestamp
+        if direction == 'Tx':
+            this_group_tx.append(message)
+        else:
+            this_group_rx.append(message)
+
+    yield base_time, this_group_tx, this_group_rx
+
 def print_messages(file):
     reader = ASCReader(file)
-    for (direction, msg) in reader:
-        print(direction, msg)
+    for (base_time, tx_group, rx_group) in group_by_time(reader, .005):
+        # TODO: something with messages
+        pass
 
 def main():
     data = load_from_cache('HIL_Playback_Jan2021')
